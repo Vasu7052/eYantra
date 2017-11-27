@@ -45,21 +45,21 @@ def blend_transparent(face_img, overlay_t_img):
 
 def main(video_file_with_path):
     cap = cv2.VideoCapture(video_file_with_path)
-    out = cv2.VideoWriter('videooutput.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (1280, 720))
+    out = cv2.VideoWriter('videooutput.avi', cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), 16.57, (1280, 720),True)
 
-    image_red = cv2.imread("Overlay_Images/yellow_flower.png",-1)
-    image_blue = cv2.imread("Overlay_Images/pink_flower.png",-1)
-    image_green = cv2.imread("Overlay_Images/red_flower.png",-1)
+    image_red = cv2.imread("Overlay_Images/yellow_flower.png", -1)
+    image_blue = cv2.imread("Overlay_Images/pink_flower.png", -1)
+    image_green = cv2.imread("Overlay_Images/red_flower.png", -1)
 
     dictionary = {}
-    count = 1
+    newObjectDict = {'NewColor':'' , 'NewCx':'' , 'NewCy':'' , 'NewShape':''}
+    dictCount = 1
 
-
-    while (cap.isOpened()):
-        ret, frame = cap.read()
-
-        if ret is True :
-
+    ret, frame = cap.read()
+    count = 0
+    while (ret):
+        ret2, frame = cap.read()
+        if (ret2):
             img = frame
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -67,7 +67,7 @@ def main(video_file_with_path):
             _, contours, h = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
             for cnt in contours:
-                shape = ""
+                shape = "Shape Unidentified"
                 approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
                 if len(approx) == 5:
                     shape = "Pentagon"
@@ -77,12 +77,15 @@ def main(video_file_with_path):
                     shape = "Square"
                 elif len(approx) == 6:
                     shape = "Hexagon"
-                elif len(approx) > 15:
+                elif len(approx) > 15 :
                     shape = "Circle"
 
                 M = cv2.moments(cnt)
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
+
+                if cy == 543 :
+                    continue
 
                 colorCode = img[cy, cx]
                 color = "Not Found"
@@ -112,59 +115,75 @@ def main(video_file_with_path):
                     else:
                         shape = "Trapezium"
 
-                if colorCode[0] == 254 and colorCode[1] == 0 and colorCode[2] == 0:
+                if 120 <= colorCode[0] <= 255 and colorCode[1] == 0 and colorCode[2] == 0:
                     color = "Blue"
-                    temp = img[cy-100:cy+100,cx-100:cx+100]
-                    resized_image = cv2.resize(image_blue, (200, 200))
-                    result = blend_transparent(temp,resized_image)
-                    img[cy - 100:cy + 100, cx - 100:cx + 100] = result
-                    if (str(cx)+","+str(cy)) in dictionary.values():
+                    if (str(cx) + "," + str(cy)) in dictionary.values():
                         pass
                     else:
-                        dictionary[str(count)] = str(cx) + "," + str(cy)
-                        count += 1
-                        writecsv(color,shape,cx,cy)
-                elif colorCode[0] == 0 and colorCode[1] == 127 and colorCode[2] == 0:
+                        dictionary[str(dictCount)] = str(cx) + "," + str(cy)
+                        dictCount += 1
+                        newObjectDict['NewColor'] = 'Blue'
+                        newObjectDict['NewCx'] = cx
+                        newObjectDict['NewCy'] = cy
+                        newObjectDict['NewShape'] = str(shape)
+                        writecsv(color, shape, cx, cy)
+                elif colorCode[0] == 0 and 120 <= colorCode[1] <= 255 and colorCode[2] == 0:
                     color = "Green"
-                    temp = frame[cy - 100:cy + 100, cx - 100:cx + 100]
-                    resized_image = cv2.resize(image_green, (200, 200))
-                    result = blend_transparent(temp, resized_image)
-                    img[cy - 100:cy + 100, cx - 100:cx + 100] = result
-                    if (str(cx)+","+str(cy)) in dictionary.values():
+                    if (str(cx) + "," + str(cy)) in dictionary.values():
                         pass
                     else:
-                        dictionary[str(count)] = str(cx) + "," + str(cy)
-                        count += 1
-                        writecsv(color,shape,cx,cy)
-                elif colorCode[0] == 0 and colorCode[1] == 0 and colorCode[2] == 254:
+                        dictionary[str(dictCount)] = str(cx) + "," + str(cy)
+                        dictCount += 1
+                        newObjectDict['NewColor'] = 'Green'
+                        newObjectDict['NewCx'] = cx
+                        newObjectDict['NewCy'] = cy
+                        newObjectDict['NewShape'] = str(shape)
+                        writecsv(color, shape, cx, cy)
+                elif colorCode[0] == 0 and colorCode[1] == 0 and 127 <= colorCode[2] <= 254:
                     color = "Red"
-                    temp = frame[cy - 100:cy + 100, cx - 100:cx + 100]
-                    resized_image = cv2.resize(image_red, (200, 200))
-                    result = blend_transparent(temp, resized_image)
-                    img[cy - 100:cy + 100, cx - 100:cx + 100] = result
-                    if (str(cx)+","+str(cy)) in dictionary.values():
+                    if (str(cx) + "," + str(cy)) in dictionary.values():
                         pass
                     else:
-                        dictionary[str(count)] = str(cx) + "," + str(cy)
-                        count += 1
-                        writecsv(color,shape,cx,cy)
+                        dictionary[str(dictCount)] = str(cx) + "," + str(cy)
+                        dictCount += 1
+                        newObjectDict['NewColor'] = 'Red'
+                        newObjectDict['NewCx'] = cx
+                        newObjectDict['NewCy'] = cy
+                        newObjectDict['NewShape'] = str(shape)
+                        writecsv(color, shape, cx, cy)
 
+            imgColor = newObjectDict['NewColor']
+            imgCx = newObjectDict['NewCx']
+            imgCy = newObjectDict['NewCy']
+
+            if imgColor is "Blue" :
+                temp = img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100]
+                resized_image = cv2.resize(image_blue, (200, 200))
+                result = blend_transparent(temp, resized_image)
+                img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100] = result
+            elif imgColor is "Green" :
+                temp = img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100]
+                resized_image = cv2.resize(image_green, (200, 200))
+                result = blend_transparent(temp, resized_image)
+                img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100] = result
+            elif imgColor is "Red" :
+                temp = img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100]
+                resized_image = cv2.resize(image_red, (200, 200))
+                result = blend_transparent(temp, resized_image)
+                img[imgCy - 100:imgCy + 100, imgCx - 100:imgCx + 100] = result
 
             cv2.imshow('frame', frame)
-
-
-            if cv2.waitKey(30) & 0xFF == ord('q'):
-                break
-
             out.write(frame)
-
+            cv2.waitKey(40)
+            count += 1
         else:
             break
 
-
-
     cap.release()
     out.release()
+    outputFile = "videooutput.avi"
+    base = os.path.splitext(outputFile)[0]
+    os.rename(outputFile, base + ".mp4")
     cv2.destroyAllWindows()
 
 #################################################################################################
@@ -172,4 +191,4 @@ def main(video_file_with_path):
 #################################################################################################
 #main where the path is set for the directory containing the test images
 if __name__ == "__main__":
-    main("Video.mp4")
+    main('./Video.mp4')
